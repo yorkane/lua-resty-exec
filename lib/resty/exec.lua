@@ -1,16 +1,32 @@
+-- curl -Lk https://github.com/jprjr/sockexec/releases/download/3.1.1/sockexec-x86_64-linux-musl.tar.gz | tar xvz && rm -rf src share
+-- bin/sockexec -M777 /tmp/exec.sock &
+
 local exec = require"resty.exec.socket"
 local tonumber = tonumber
 local table_unpack = unpack or table.unpack -- luacheck: compat
 local insert = table.insert
 local concat = table.concat
+local split = require('ngx.re').split
 
 local _M = {
-  _VERSION = "3.0.3"
+    _VERSION = "3.0.3",
+	default_address = '/tmp/exec.sock'
 }
+
+function _M.run(cmd, address)
+	address = address or _M.default_address
+	local prog = _M.new(address)
+	local arr = split(cmd,[[ ]], 'jo')
+	--require('klib.dump').dump(arr)
+	local res, err = prog(unpack(arr))
+	if err then
+		ngx.log(ngx.ERR, 'try to socket exec cmd: "'..cmd.. '" failed: '..err)
+	end
+	return res, err
+end
 
 function _M.new(address)
     if not address then return nil, "must supply an address" end
-
     local o = {
         argv = nil,
         stdin = nil,
@@ -64,7 +80,7 @@ function _M.new(address)
                 end
 
                 if args[1].timeout then
-                  self.timeout = args[1].timeout
+                    self.timeout = args[1].timeout
                 end
 
             else
@@ -76,33 +92,33 @@ function _M.new(address)
         if not self.argv or #self.argv <= 0 then return nil, "no arguments supplied" end
 
         local cbs = {
-          ["unknown"] = function(v)
-            if self.unknown then
-              self.unknown(v)
-            else
-              insert(ret.unknown,v)
-            end
-          end,
-          ["stdout"] = function(v)
-            if self.stdout then
-              self.stdout(v)
-            else
-              insert(ret.stdout,v)
-            end
-          end,
-          ["stderr"] = function(v)
-            if self.stderr then
-              self.stderr(v)
-            else
-              insert(ret.stderr,v)
-            end
-          end,
-          ["termsig"] = function(v)
-            ret.termsig = ret.termsig .. v
-          end,
-          ["exitcode"] = function(v)
-            ret.exitcode = ret.exitcode .. v
-          end,
+            ["unknown"] = function(v)
+                if self.unknown then
+                    self.unknown(v)
+                else
+                    insert(ret.unknown,v)
+                end
+            end,
+            ["stdout"] = function(v)
+                if self.stdout then
+                    self.stdout(v)
+                else
+                    insert(ret.stdout,v)
+                end
+            end,
+            ["stderr"] = function(v)
+                if self.stderr then
+                    self.stderr(v)
+                else
+                    insert(ret.stderr,v)
+                end
+            end,
+            ["termsig"] = function(v)
+                ret.termsig = ret.termsig .. v
+            end,
+            ["exitcode"] = function(v)
+                ret.exitcode = ret.exitcode .. v
+            end,
         }
 
         c,err = exec:new({timeout = self.timeout})
@@ -123,7 +139,7 @@ function _M.new(address)
                 if err == "timeout" then
                     if self.timeout_fatal then
                         return nil, err
-                   else
+                    else
                         err = nil
                     end
                 else
@@ -134,7 +150,7 @@ function _M.new(address)
             end
 
             if typ then
-              cbs[typ](data)
+                cbs[typ](data)
             end
         end
         c:close()
@@ -168,10 +184,10 @@ function _M.new(address)
     end
 
     setmetatable(o,
-        { __call = function(...)
-            local args = {...}
-            return o.exec(table_unpack(args))
-        end })
+            { __call = function(...)
+                local args = {...}
+                return o.exec(table_unpack(args))
+            end })
 
     return o, nil
 end
