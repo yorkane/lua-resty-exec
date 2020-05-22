@@ -17,7 +17,8 @@ read and write to running applications!
 
 This requires your web server to have an active instance of
 [sockexec](https://github.com/jprjr/sockexec) running.
-### sockexec installation:
+### Sockexec binary installation:
+> Valid for x86_64. Please visit https://github.com/jprjr/sockexec/releases for others
 ```sh
 curl -Lk https://github.com/jprjr/sockexec/releases/download/3.1.1/sockexec-x86_64-linux-musl.tar.gz | tar xvz && rm -rf src share
 bin/sockexec -M777 /tmp/exec.sock & # keep running on background
@@ -47,6 +48,15 @@ Additionally, you'll need `sockexec` running, see [its repo](https://github.com/
 for instructions.
 
 ## `resty.exec` Usage
+
+### quick mode
+```lua
+local exec = require'resty.exec'
+exec.run('netstat -pant')
+
+# customize connection
+exec.run('netstat -pant', 'unix://xxx/xxx')
+```
 
 ```lua
 local exec = require'resty.exec'
