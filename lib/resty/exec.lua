@@ -17,7 +17,6 @@ function _M.run(cmd, address)
 	address = address or _M.default_address
 	local prog = _M.new(address)
 	local arr = split(cmd,[[ ]], 'jo')
-	--require('klib.dump').dump(arr)
 	local res, err = prog(unpack(arr))
 	if err then
 		ngx.log(ngx.ERR, 'try to socket exec cmd: "'..cmd.. '" failed: '..err)
